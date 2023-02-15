@@ -83,7 +83,7 @@ import (
 )
 
 const (
-	updateDemoSelector        = "name=update-demo"
+	updateDemoSelector        = "name=update-qossort"
 	guestbookStartupTimeout   = 10 * time.Minute
 	guestbookResponseTimeout  = 3 * time.Minute
 	simplePodSelector         = "name=httpd"
@@ -294,7 +294,7 @@ var _ = SIGDescribe("Kubectl client", func() {
 	ginkgo.Describe("Update Demo", func() {
 		var nautilus string
 		ginkgo.BeforeEach(func() {
-			updateDemoRoot := "test/fixtures/doc-yaml/user-guide/update-demo"
+			updateDemoRoot := "test/fixtures/doc-yaml/user-guide/update-qossort"
 			data, err := e2etestfiles.Read(filepath.Join(updateDemoRoot, "nautilus-rc.yaml.in"))
 			if err != nil {
 				framework.Fail(err.Error())
@@ -311,7 +311,7 @@ var _ = SIGDescribe("Kubectl client", func() {
 
 			ginkgo.By("creating a replication controller")
 			framework.RunKubectlOrDieInput(ns, nautilus, "create", "-f", "-")
-			validateController(c, nautilusImage, 2, "update-demo", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
+			validateController(c, nautilusImage, 2, "update-qossort", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
 		})
 
 		/*
@@ -324,15 +324,15 @@ var _ = SIGDescribe("Kubectl client", func() {
 
 			ginkgo.By("creating a replication controller")
 			framework.RunKubectlOrDieInput(ns, nautilus, "create", "-f", "-")
-			validateController(c, nautilusImage, 2, "update-demo", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
+			validateController(c, nautilusImage, 2, "update-qossort", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
 			ginkgo.By("scaling down the replication controller")
 			debugDiscovery()
-			framework.RunKubectlOrDie(ns, "scale", "rc", "update-demo-nautilus", "--replicas=1", "--timeout=5m")
-			validateController(c, nautilusImage, 1, "update-demo", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
+			framework.RunKubectlOrDie(ns, "scale", "rc", "update-qossort-nautilus", "--replicas=1", "--timeout=5m")
+			validateController(c, nautilusImage, 1, "update-qossort", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
 			ginkgo.By("scaling up the replication controller")
 			debugDiscovery()
-			framework.RunKubectlOrDie(ns, "scale", "rc", "update-demo-nautilus", "--replicas=2", "--timeout=5m")
-			validateController(c, nautilusImage, 2, "update-demo", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
+			framework.RunKubectlOrDie(ns, "scale", "rc", "update-qossort-nautilus", "--replicas=2", "--timeout=5m")
+			validateController(c, nautilusImage, 2, "update-qossort", updateDemoSelector, getUDData("nautilus.jpg", ns), ns)
 		})
 	})
 
@@ -2091,7 +2091,7 @@ func validateReplicationControllerConfiguration(rc v1.ReplicationController) {
 // in the container's json field.
 func getUDData(jpgExpected string, ns string) func(clientset.Interface, string) error {
 
-	// getUDData validates data.json in the update-demo (returns nil if data is ok).
+	// getUDData validates data.json in the update-qossort (returns nil if data is ok).
 	return func(c clientset.Interface, podID string) error {
 		framework.Logf("validating pod %s", podID)
 

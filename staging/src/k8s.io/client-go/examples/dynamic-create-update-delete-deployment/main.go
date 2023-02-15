@@ -71,19 +71,19 @@ func main() {
 			"apiVersion": "apps/v1",
 			"kind":       "Deployment",
 			"metadata": map[string]interface{}{
-				"name": "demo-deployment",
+				"name": "qossort-deployment",
 			},
 			"spec": map[string]interface{}{
 				"replicas": 2,
 				"selector": map[string]interface{}{
 					"matchLabels": map[string]interface{}{
-						"app": "demo",
+						"app": "qossort",
 					},
 				},
 				"template": map[string]interface{}{
 					"metadata": map[string]interface{}{
 						"labels": map[string]interface{}{
-							"app": "demo",
+							"app": "qossort",
 						},
 					},
 
@@ -134,7 +134,7 @@ func main() {
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		// Retrieve the latest version of Deployment before attempting update
 		// RetryOnConflict uses exponential backoff to avoid exhausting the apiserver
-		result, getErr := client.Resource(deploymentRes).Namespace(namespace).Get(context.TODO(), "demo-deployment", metav1.GetOptions{})
+		result, getErr := client.Resource(deploymentRes).Namespace(namespace).Get(context.TODO(), "qossort-deployment", metav1.GetOptions{})
 		if getErr != nil {
 			panic(fmt.Errorf("failed to get latest version of Deployment: %v", getErr))
 		}
@@ -189,7 +189,7 @@ func main() {
 	deleteOptions := metav1.DeleteOptions{
 		PropagationPolicy: &deletePolicy,
 	}
-	if err := client.Resource(deploymentRes).Namespace(namespace).Delete(context.TODO(), "demo-deployment", deleteOptions); err != nil {
+	if err := client.Resource(deploymentRes).Namespace(namespace).Delete(context.TODO(), "qossort-deployment", deleteOptions); err != nil {
 		panic(err)
 	}
 

@@ -65,19 +65,19 @@ func main() {
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "demo-deployment",
+			Name: "qossort-deployment",
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: int32Ptr(2),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": "demo",
+					"app": "qossort",
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "demo",
+						"app": "qossort",
 					},
 				},
 				Spec: apiv1.PodSpec{
@@ -126,7 +126,7 @@ func main() {
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		// Retrieve the latest version of Deployment before attempting update
 		// RetryOnConflict uses exponential backoff to avoid exhausting the apiserver
-		result, getErr := deploymentsClient.Get(context.TODO(), "demo-deployment", metav1.GetOptions{})
+		result, getErr := deploymentsClient.Get(context.TODO(), "qossort-deployment", metav1.GetOptions{})
 		if getErr != nil {
 			panic(fmt.Errorf("Failed to get latest version of Deployment: %v", getErr))
 		}
@@ -156,7 +156,7 @@ func main() {
 	prompt()
 	fmt.Println("Deleting deployment...")
 	deletePolicy := metav1.DeletePropagationForeground
-	if err := deploymentsClient.Delete(context.TODO(), "demo-deployment", metav1.DeleteOptions{
+	if err := deploymentsClient.Delete(context.TODO(), "qossort-deployment", metav1.DeleteOptions{
 		PropagationPolicy: &deletePolicy,
 	}); err != nil {
 		panic(err)

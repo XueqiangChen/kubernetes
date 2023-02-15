@@ -33,7 +33,7 @@ function start()
 
     # Create new IQN (iSCSI Qualified Name)
     flock $LOCK targetcli /iscsi create "$IQN"
-    # Run it in demo mode, i.e. no authentication
+    # Run it in qossort mode, i.e. no authentication
     flock $LOCK targetcli /iscsi/"$IQN"/tpg1 set attribute authentication=0 demo_mode_write_protect=0 generate_node_acls=1 cache_dynamic_acls=1
 
     # Create unique "block volume" (i.e. flat file) on the *host*.

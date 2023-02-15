@@ -271,6 +271,7 @@ func (f *DeltaFIFO) KeyOf(obj interface{}) (string, error) {
 func (f *DeltaFIFO) HasSynced() bool {
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	// initialPopulationCount replace之后事件的长度，如果被消费掉，说明已经为空了，全部同步到本地缓存了
 	return f.populated && f.initialPopulationCount == 0
 }
 
@@ -303,7 +304,7 @@ func (f *DeltaFIFO) Delete(obj interface{}) error {
 	}
 	f.lock.Lock()
 	defer f.lock.Unlock()
-	f.populated = true
+	f.populated = true //说明deltafifo这个队列已经可用了，被激活了
 	if f.knownObjects == nil {
 		if _, exists := f.items[id]; !exists {
 			// Presumably, this was deleted when a relist happened.
@@ -315,9 +316,9 @@ func (f *DeltaFIFO) Delete(obj interface{}) error {
 		// exist in knownObjects and it doesn't have corresponding item in items.
 		// Note that even if there is a "deletion" action in items, we can ignore it,
 		// because it will be deduped automatically in "queueActionLocked"
-		_, exists, err := f.knownObjects.GetByKey(id)
+		_, exists, err := f.knownObjects.GetByKey(id) // knownObjects 本地缓存，与远端etcd做同步
 		_, itemsExist := f.items[id]
-		if err == nil && !exists && !itemsExist {
+		if err == nil && !exists && !itemsExist { // index不存在，deltafifo中也不存在，忽视该event
 			// Presumably, this was deleted when a relist happened.
 			// Don't provide a second report of the same deletion.
 			return nil
@@ -372,7 +373,7 @@ func dedupDeltas(deltas Deltas) Deltas {
 	if n < 2 {
 		return deltas
 	}
-	a := &deltas[n-1]
+	a := &deltas[n-1] // 获取最后的两个元素进行比较
 	b := &deltas[n-2]
 	if out := isDup(a, b); out != nil {
 		deltas[n-2] = *out
@@ -486,6 +487,7 @@ func (f *DeltaFIFO) GetByKey(key string) (item interface{}, exists bool, err err
 	if exists {
 		// Copy item's slice so operations on this slice
 		// won't interfere with the object we return.
+		// 避免切片被污染
 		d = copyDeltas(d)
 	}
 	return d, exists, nil
@@ -528,9 +530,9 @@ func (f *DeltaFIFO) Pop(process PopProcessFunc) (interface{}, error) {
 		}
 		id := f.queue[0]
 		f.queue = f.queue[1:]
-		depth := len(f.queue)
+		depth := len(f.queue) // 和后面的trace log有关
 		if f.initialPopulationCount > 0 {
-			f.initialPopulationCount--
+			f.initialPopulationCount-- // 队列内的事件长度，被消费完就表示全部同步到本地缓存了
 		}
 		item, ok := f.items[id]
 		if !ok {
@@ -553,7 +555,7 @@ func (f *DeltaFIFO) Pop(process PopProcessFunc) (interface{}, error) {
 		}
 		err := process(item)
 		if e, ok := err.(ErrRequeue); ok {
-			f.addIfNotPresent(id, item)
+			f.addIfNotPresent(id, item) // 消费失败再次添加到queue中
 			err = e.Err
 		}
 		// Don't need to copyDeltas here, because we're transferring
@@ -572,9 +574,11 @@ func (f *DeltaFIFO) Pop(process PopProcessFunc) (interface{}, error) {
 // of the Deltas associated with K.  Otherwise the pre-existing keys
 // are those listed by `f.knownObjects` and the current object of K is
 // what `f.knownObjects.GetByKey(K)` returns.
+// deltafifo 刚启动的时候向APISERVER做一次全量同步，第一次同步的时候就会先调用这个方法
 func (f *DeltaFIFO) Replace(list []interface{}, _ string) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
+	// sets 这个包不是go原生的，利用map来实现，value用一个空的结构体来实现
 	keys := make(sets.String, len(list))
 
 	// keep backwards compat for old clients
@@ -595,6 +599,7 @@ func (f *DeltaFIFO) Replace(list []interface{}, _ string) error {
 		}
 	}
 
+	// 这里是非空的，看的时候可以先忽略这段代码
 	if f.knownObjects == nil {
 		// Do deletion detection against our own list.
 		queuedDeletions := 0
@@ -626,6 +631,7 @@ func (f *DeltaFIFO) Replace(list []interface{}, _ string) error {
 	}
 
 	// Detect deletions not already in the queue.
+	// 获取客户端的所有的key
 	knownKeys := f.knownObjects.ListKeys()
 	queuedDeletions := 0
 	for _, k := range knownKeys {
@@ -633,6 +639,7 @@ func (f *DeltaFIFO) Replace(list []interface{}, _ string) error {
 			continue
 		}
 
+		// 对比客户端本地缓存和服务端的key不一致，不一致就需要删除本地缓存的key
 		deletedObj, exists, err := f.knownObjects.GetByKey(k)
 		if err != nil {
 			deletedObj = nil
@@ -642,6 +649,8 @@ func (f *DeltaFIFO) Replace(list []interface{}, _ string) error {
 			klog.Infof("Key %v does not exist in known objects store, placing DeleteFinalStateUnknown marker without object", k)
 		}
 		queuedDeletions++
+		// 为什么要封装一层DeletedFinalStateUnknown？
+		// 主要是因为上面可能有错误，导致deletedObj是空的，后面计算key会有问题，KeyOf()没有判断空的情况
 		if err := f.queueActionLocked(Deleted, DeletedFinalStateUnknown{k, deletedObj}); err != nil {
 			return err
 		}
@@ -693,7 +702,7 @@ func (f *DeltaFIFO) syncKeyLocked(key string) error {
 	if err != nil {
 		return KeyError{obj, err}
 	}
-	if len(f.items[id]) > 0 {
+	if len(f.items[id]) > 0 { // sync 可以理解为一次update事件，它与update的handler是一致的
 		return nil
 	}
 

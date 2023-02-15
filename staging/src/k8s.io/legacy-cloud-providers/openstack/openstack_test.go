@@ -106,7 +106,7 @@ func TestReadConfig(t *testing.T) {
  [Global]
  auth-url = http://auth.url
  user-id = user
- tenant-name = demo
+ tenant-name = qossort
  region = RegionOne
  [LoadBalancer]
  create-monitor = yes
@@ -138,7 +138,7 @@ func TestReadConfig(t *testing.T) {
 	}
 
 	// config file wins over environment variable
-	if cfg.Global.TenantName != "demo" {
+	if cfg.Global.TenantName != "qossort" {
 		t.Errorf("incorrect tenant name: %s", cfg.Global.TenantName)
 	}
 

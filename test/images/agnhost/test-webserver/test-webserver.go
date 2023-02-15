@@ -52,7 +52,7 @@ func main(cmd *cobra.Command, args []string) {
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,Cache-Control,Content-Type")
-		// Disable If-Modified-Since so update-demo isn't broken by 304s
+		// Disable If-Modified-Since so update-qossort isn't broken by 304s
 		r.Header.Del("If-Modified-Since")
 		fs.ServeHTTP(w, r)
 	})

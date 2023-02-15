@@ -367,7 +367,7 @@ func TestPathBuilderAndVersionedObjectNotDefaulted(t *testing.T) {
 	}
 
 	info := test.Infos[0]
-	if info.Name != "update-demo-kitten" || info.Namespace != "" || info.Object == nil {
+	if info.Name != "update-qossort-kitten" || info.Namespace != "" || info.Object == nil {
 		t.Errorf("unexpected info: %#v", info)
 	}
 

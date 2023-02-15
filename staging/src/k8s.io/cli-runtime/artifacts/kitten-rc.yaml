@@ -1,20 +1,20 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: update-demo-kitten
+  name: update-qossort-kitten
 spec:
   selector:
-    name: update-demo
+    name: update-qossort
     version: kitten
   template:
     metadata:
       labels:
-        name: update-demo
+        name: update-qossort
         version: kitten
     spec:
       containers:
-      - image: k8s.gcr.io/update-demo:kitten
-        name: update-demo
+      - image: k8s.gcr.io/update-qossort:kitten
+        name: update-qossort
         ports:
         - containerPort: 80
           protocol: TCP
